@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>सरकारी सेवा सहायक</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans Devanagari", "Mangal", sans-serif;
+    background: #f4f6fb;
+    color: #222;
+  }
+  header {
+    background: #1f4e9c;
+    color: #fff;
+    padding: 16px;
+    text-align: center;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  .container { max-width: 640px; margin: 0 auto; padding: 16px; }
+  #search {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  .filters { margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters button {
+    padding: 6px 12px;
+    border: 1px solid #1f4e9c;
+    background: #fff;
+    color: #1f4e9c;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .filters button.active { background: #1f4e9c; color: #fff; }
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card h2 { font-size: 17px; margin: 0 0 6px; color: #1f4e9c; }
+  .card p { margin: 4px 0; font-size: 14px; line-height: 1.5; }
+  .card a { color: #1f4e9c; }
+  .tag {
+    display: inline-block;
+    background: #e8eefb;
+    color: #1f4e9c;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .note {
+    font-size: 12px;
+    color: #666;
+    text-align: center;
+    margin: 20px 0;
+  }
+  .empty { text-align: center; color: #777; padding: 30px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>सरकारी सेवा सहायक</h1>
+</header>
+
+<div class="container">
+  <input type="text" id="search" placeholder="योजना खोजें, जैसे किसान, छात्र, महिला...">
+
+  <div class="filters" id="filters"></div>
+
+  <div id="list"></div>
+
+  <p class="note">
+    यह ऐप केवल सामान्य जानकारी के लिए है। पात्रता और आवेदन की अंतिम पुष्टि
+    आधिकारिक सरकारी वेबसाइट पर ज़रूर करें। जानकारी का स्रोत: myscheme.gov.in
+  </p>
+</div>
+
+<script>
+  const schemes = [
+    {
+      name: "प्रधानमंत्री किसान सम्मान निधि",
+      category: "किसान",
+      forWhom: "छोटे और सीमांत किसान परिवार",
+      eligibility: "भूमिधारी किसान परिवार (कुछ श्रेणियाँ अपात्र हैं)",
+      howToApply: "pmkisan.gov.in पर या CSC केंद्र से पंजीकरण करें",
+      link: "https://pmkisan.gov.in"
+    },
+    {
+      name: "प्रधानमंत्री आवास योजना (ग्रामीण)",
+      category: "घर",
+      forWhom: "कच्चे या जर्जर मकान वाले गरीब परिवार",
+      eligibility: "सामाजिक-आर्थिक जनगणना के आधार पर चयन",
+      howToApply: "अपनी ग्राम पंचायत या आवास प्लस पोर्टल पर जाँच करें",
+      link: "https://pmayg.nic.in"
+    },
+    {
+      name: "राष्ट्रीय छात्रवृत्ति योजना (NSP)",
+      category: "छात्र",
+      forWhom: "कक्षा 9 से उच्च शिक्षा तक के छात्र",
+      eligibility: "आय सीमा और शैक्षणिक योग्यता के अनुसार",
+      howToApply: "scholarships.gov.in पर ऑनलाइन आवेदन करें",
+      link: "https://scholarships.gov.in"
+    },
+    {
+      name: "आयुष्मान भारत (PM-JAY)",
+      category: "स्वास्थ्य",
+      forWhom: "पात्र गरीब और कमज़ोर परिवार",
+      eligibility: "SECC डेटा के आधार पर पात्रता; ई-KYC से जाँच",
+      howToApply: "nha.gov.in या नज़दीकी आयुष्मान मित्र/CSC पर जाँच करें",
+      link: "https://nha.gov.in"
+    },
+    {
+      name: "लाडली बहना योजना (मध्य प्रदेश)",
+      category: "महिला",
+      forWhom: "मध्य प्रदेश की पात्र महिलाएँ",
+      eligibility: "राज्य सरकार द्वारा तय आय और निवास शर्तें",
+      howToApply: "नज़दीकी CSC या पंचायत के माध्यम से आवेदन करें",
+      link: "https://www.mpsocialwelfare.gov.in"
+    },
+    {
+      name: "प्रधानमंत्री मुद्रा योजना",
+      category: "रोज़गार",
+      forWhom: "छोटे व्यवसाय शुरू करने या चलाने वाले लोग",
+      eligibility: "गैर-कृषि छोटे उद्यम; ऋण राशि के अनुसार श्रेणी",
+      howToApply: "किसी भी बैंक, NBFC या मुद्रा पोर्टल पर आवेदन करें",
+      link: "https://www.mudra.org.in"
+    },
+    {
+      name: "वृद्धावस्था पेंशन (राष्ट्रीय सामाजिक सहायता कार्यक्रम)",
+      category: "बुज़ुर्ग",
+      forWhom: "गरीब बुज़ुर्ग नागरिक",
+      eligibility: "निर्धारित आयु (आमतौर पर 60 वर्ष से ऊपर) और BPL स्थिति",
+      howToApply: "ग्राम पंचायत, नगर निकाय या nsap.nic.in पर संपर्क करें",
+      link: "https://nsap.nic.in"
+    },
+    {
+      name: "सरकारी नौकरी की जानकारी (SSC, UPSC, रेलवे आदि)",
+      category: "सरकारी नौकरी",
+      forWhom: "सरकारी नौकरी की तैयारी करने वाले और आवेदक",
+      eligibility: "हर भर्ती की अपनी शैक्षणिक योग्यता, आयु सीमा और शर्तें होती हैं",
+      howToApply: "ssc.gov.in, upsc.gov.in या rrbcdg.gov.in जैसी आधिकारिक साइट पर भर्ती सूचना देखें",
+      link: "https://www.ncs.gov.in"
+    },
+    {
+      name: "आधार कार्ड सेवाएँ (नामांकन, अपडेट, डाउनलोड)",
+      category: "आधार",
+      forWhom: "सभी भारतीय नागरिक और निवासी",
+      eligibility: "नया आधार बनवाने या अपडेट करने के लिए नियम UIDAI की वेबसाइट पर देखें",
+      howToApply: "uidai.gov.in पर ऑनलाइन सेवाएँ या नज़दीकी आधार केंद्र पर जाएँ",
+      link: "https://uidai.gov.in"
+    },
+    {
+      name: "जन्म प्रमाण पत्र",
+      category: "दस्तावेज़",
+      forWhom: "नवजात शिशु या किसी भी व्यक्ति के जन्म का प्रमाण चाहने वाले",
+      eligibility: "जन्म पंजीकरण संबंधित राज्य/नगर निकाय में होना ज़रूरी है",
+      howToApply: "अपने राज्य के जन्म-मृत्यु पंजीकरण पोर्टल या नगर निकाय/ग्राम पंचायत कार्यालय में आवेदन करें",
+      link: "https://crsorgi.gov.in"
+    },
+    {
+      name: "राशन कार्ड",
+      category: "दस्तावेज़",
+      forWhom: "खाद्य सुरक्षा योजना के पात्र परिवार",
+      eligibility: "आय और परिवार के सदस्यों की संख्या के आधार पर राज्य के नियम लागू होते हैं",
+      howToApply: "अपने राज्य के खाद्य एवं आपूर्ति विभाग के पोर्टल या नज़दीकी राशन कार्यालय में आवेदन करें",
+      link: "https://nfsa.gov.in"
+    },
+    {
+      name: "वोटर आईडी (मतदाता पहचान पत्र)",
+      category: "दस्तावेज़",
+      forWhom: "18 वर्ष या उससे अधिक आयु के भारतीय नागरिक",
+      eligibility: "भारतीय नागरिक और निर्धारित आयु होना ज़रूरी है",
+      howToApply: "voters.eci.gov.in पर फ़ॉर्म 6 भरकर ऑनलाइन आवेदन करें",
+      link: "https://voters.eci.gov.in"
+    },
+    {
+      name: "ड्राइविंग लाइसेंस",
+      category: "दस्तावेज़",
+      forWhom: "वाहन चलाने के लिए लाइसेंस चाहने वाले",
+      eligibility: "न्यूनतम आयु और लर्नर लाइसेंस जैसी शर्तें राज्य/परिवहन नियमों के अनुसार होती हैं",
+      howToApply: "parivahan.gov.in पर ऑनलाइन आवेदन करें या नज़दीकी RTO कार्यालय जाएँ",
+      link: "https://parivahan.gov.in"
+    },
+    {
+      name: "बिजली बिल भुगतान और शिकायत",
+      category: "बिजली और गैस",
+      forWhom: "बिजली उपभोक्ता जिन्हें बिल, मीटर या शिकायत से जुड़ी मदद चाहिए",
+      eligibility: "आपके क्षेत्र की बिजली वितरण कंपनी (DISCOM) के उपभोक्ता होना ज़रूरी है",
+      howToApply: "bijlibillhelpline.gov.in पर अपनी कंपनी चुनें या अपनी DISCOM की वेबसाइट पर बिल भरें",
+      link: "https://bijlibillhelpline.gov.in"
+    },
+    {
+      name: "गैस सिलेंडर (LPG) सेवाएँ",
+      category: "बिजली और गैस",
+      forWhom: "LPG गैस कनेक्शन वाले उपभोक्ता",
+      eligibility: "वैध LPG कनेक्शन और आधार/बैंक से जुड़ा खाता सामान्यतः ज़रूरी होता है",
+      howToApply: "mylpg.in पर अपनी गैस कंपनी (भारत, इंडेन, HP) चुनकर बुकिंग और सेवाएँ देखें",
+      link: "https://mylpg.in"
+    },
+    {
+      name: "प्रधानमंत्री आवास योजना (शहरी)",
+      category: "घर",
+      forWhom: "शहरों में अपना पक्का घर न होने वाले कम आय वाले परिवार",
+      eligibility: "आय सीमा और पहले से घर न होने जैसी शर्तें लागू होती हैं",
+      howToApply: "pmaymis.gov.in पर ऑनलाइन आवेदन करें या नगर निकाय कार्यालय में संपर्क करें",
+      link: "https://pmaymis.gov.in"
+    }
+  ];
+
+  const categories = ["सभी", ...new Set(schemes.map(s => s.category))];
+  let activeCategory = "सभी";
+
+  const searchInput = document.getElementById("search");
+  const filtersDiv = document.getElementById("filters");
+  const listDiv = document.getElementById("list");
+
+  function renderFilters() {
+    filtersDiv.innerHTML = "";
+    categories.forEach(cat => {
+      const btn = document.createElement("button");
+      btn.textContent = cat;
+      if (cat === activeCategory) btn.classList.add("active");
+      btn.onclick = () => { activeCategory = cat; renderFilters(); renderList(); };
+      filtersDiv.appendChild(btn);
+    });
+  }
+
+  function renderList() {
+    const q = searchInput.value.trim().toLowerCase();
+    const results = schemes.filter(s => {
+      const matchCat = activeCategory === "सभी" || s.category === activeCategory;
+      const text = (s.name + " " + s.category + " " + s.forWhom).toLowerCase();
+      const matchText = q === "" || text.includes(q);
+      return matchCat && matchText;
+    });
+
+    if (results.length === 0) {
+      listDiv.innerHTML = '<div class="empty">कोई योजना नहीं मिली। दूसरा शब्द आज़माएँ।</div>';
+      return;
+    }
+
+    listDiv.innerHTML = results.map(s => `
+      <div class="card">
+        <span class="tag">${s.category}</span>
+        <h2>${s.name}</h2>
+        <p><b>किसके लिए:</b> ${s.forWhom}</p>
+        <p><b>पात्रता:</b> ${s.eligibility}</p>
+        <p><b>आवेदन कैसे करें:</b> ${s.howToApply}</p>
+        <p><a href="${s.link}" target="_blank" rel="noopener">आधिकारिक वेबसाइट</a></p>
+      </div>
+    `).join("");
+  }
+
+  searchInput.addEventListener("input", renderList);
+  renderFilters();
+  renderList();
+</script>
+
+</body>
+</html>
